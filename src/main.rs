@@ -1,10 +1,10 @@
-mod models;
-mod parser;
+use laravel_index::models::{AppError, LogEntry};
+use laravel_index::parser;
 
+use std::collections::HashMap;
 use std::env;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
-
 fn main() {
     let args: Vec<String> = env::args().collect();
 
@@ -25,11 +25,13 @@ fn main() {
     let mut current_log_buffer = String::new();
     let mut log_count = 0;
 
+    let mut stats: HashMap<String, u32> = HashMap::new();
+
     for line in reader.lines() {
         if let Ok(line_content) = line {
             if is_real_header(&line_content) {
                 if !current_log_buffer.is_empty() {
-                    process_and_filter(&current_log_buffer, log_count, &filter_level);
+                    process_and_stats(&current_log_buffer, log_count, &filter_level, &mut stats);
                     log_count += 1;
                 }
 
@@ -42,7 +44,12 @@ fn main() {
     }
 
     if !current_log_buffer.is_empty() {
-        process_and_filter(&current_log_buffer, log_count, &filter_level);
+        process_and_stats(&current_log_buffer, log_count, &filter_level, &mut stats);
+    }
+
+    println!("\n --- STATISTIK ERROR ---");
+    for (level, count) in &stats {
+        println!("{} : {} happened", level, count);
     }
 }
 
@@ -55,8 +62,15 @@ fn is_real_header(line: &str) -> bool {
     line.starts_with('[') && chars[1].is_ascii_digit() && chars[5] == '-' && chars[8] == '-'
 }
 
-fn process_and_filter(full_log: &str, id: u64, filter: &Option<String>) {
+fn process_and_stats(
+    full_log: &str,
+    id: u64,
+    filter: &Option<String>,
+    stats: &mut HashMap<String, u32>,
+) {
     if let Some(entry) = parser::parse_line(full_log, id) {
+        let count = stats.entry(entry.level.clone()).or_insert(0);
+        *count += 1;
         match filter {
             Some(target_level) => {
                 if &entry.level == target_level {
@@ -70,20 +84,20 @@ fn process_and_filter(full_log: &str, id: u64, filter: &Option<String>) {
     }
 }
 
-fn print_log_summary(entry: models::LogEntry) {
-    use models::AppError;
+fn print_log_summary(entry: LogEntry) {
+    use AppError::*;
 
     match entry.error_type {
-        AppError::DatabaseError(msg) => {
+        DatabaseError(msg) => {
             println!("[{}] DB_ERROR: {}", entry.timestamp, msg);
         }
-        AppError::ConnectionRefused(msg) => {
+        ConnectionRefused(msg) => {
             println!("[{}] CONNECTION_REFUSED: {}", entry.timestamp, msg);
         }
-        AppError::ViewError(msg) => {
+        ViewError(msg) => {
             println!("[{}] VIEW_ERROR: {}", entry.timestamp, msg);
         }
-        AppError::GeneralError(msg) => {
+        GeneralError(msg) => {
             println!("[{}] GENERAL_ERROR: {}", entry.timestamp, msg);
         }
     }

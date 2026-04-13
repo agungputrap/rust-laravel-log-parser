@@ -19,7 +19,15 @@ fn main() {
     }
 
     let path = "laravel.log";
-    let file = File::open(path).expect("Failed to open log file!");
+    // let file = File::open(path).expect("Failed to open log file!");
+    let file = match File::open(path) {
+        Ok(f) => f,
+        Err(e) => {
+            eprintln!("Error: file not found {}", path);
+            eprintln!("Error message: {}", e);
+            return;
+        }
+    };
     let reader = BufReader::new(file);
 
     let mut current_log_buffer = String::new();

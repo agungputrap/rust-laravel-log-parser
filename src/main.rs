@@ -35,19 +35,17 @@ fn main() {
 
     let mut stats: HashMap<String, u32> = HashMap::new();
 
-    for line in reader.lines() {
-        if let Ok(line_content) = line {
-            if is_real_header(&line_content) {
-                if !current_log_buffer.is_empty() {
-                    process_and_stats(&current_log_buffer, log_count, &filter_level, &mut stats);
-                    log_count += 1;
-                }
-
-                current_log_buffer = line_content;
-            } else {
-                current_log_buffer.push_str("\n");
-                current_log_buffer.push_str(&line_content);
+    for line_content in reader.lines().map_while(Result::ok) {
+        if is_real_header(&line_content) {
+            if !current_log_buffer.is_empty() {
+                process_and_stats(&current_log_buffer, log_count, &filter_level, &mut stats);
+                log_count += 1;
             }
+
+            current_log_buffer = line_content;
+        } else {
+            current_log_buffer.push('\n');
+            current_log_buffer.push_str(&line_content);
         }
     }
 

@@ -1,4 +1,5 @@
 /// Represent type of errors
+#[derive(Debug, PartialEq)]
 pub enum AppError {
     DatabaseError(String),
     ConnectionRefused(String),
@@ -6,6 +7,7 @@ pub enum AppError {
     GeneralError(String),
 }
 
+#[derive(Debug, PartialEq)]
 pub struct LogEntry {
     pub id: u64,
     pub timestamp: String,

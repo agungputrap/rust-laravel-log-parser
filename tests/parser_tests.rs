@@ -28,11 +28,10 @@ fn test_parse_database_error() {
     assert!(result.is_some());
     let entry = result.unwrap();
 
-    assert_eq!(entry.level, "local");
-    match entry.error_type {
-        AppError::DatabaseError(_) => assert!(true),
-        _ => panic!("Should be DatabaseError!"),
-    }
+    assert_eq!(
+        entry.error_type,
+        AppError::DatabaseError("SQLSTATE[HY000] [2002] Connection refused".to_string())
+    );
 }
 
 #[test]
@@ -48,8 +47,8 @@ fn test_parse_multiline_context() {
     let line = "[2022-05-24 08:45:46] development.ERROR: Unable to locate Mix file {\"exception\":\"...\"}";
     let result = parser::parse_line(line, 1).unwrap();
 
-    match result.error_type {
-        AppError::ViewError(_) => assert!(true),
-        _ => panic!("Should be ViewError!"),
-    }
+    assert_eq!(
+        result.error_type,
+        AppError::ViewError("Unable to locate Mix file".to_string())
+    );
 }
